@@ -133,7 +133,7 @@ jobs:
       #
 
       - name: Install Monomer dependecies
-        run: brew install sdl2 glew
+        run: brew install sdl2 glew pkg-config
         if: env.CONTINUE
 
       - name: Install haskell deps
