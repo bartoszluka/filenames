@@ -1,18 +1,19 @@
-name:                monomer-starter
-version:             0.1.0.0
-#synopsis:
-#description:
-homepage:            https://github.com/githubuser/monomer-starter#readme
-license:             BSD3
-author:              Author name here
-maintainer:          example@example.com
-copyright:           2021 Author name here
-#category:
+name: filenames
+version: 0.1.0.0
+github: bartoszluka/filenames
+description: GUI for creating repetetive filenames
+homepage: https://github.com/bartoszluka/filenames
+license: BSD3
+author: Bartosz Łuka
+maintainer: bartoszluka1@gmail.com
+copyright: 2023 Bartosz Łuka
+category: GUI
+
 extra-source-files:
-- README.md
+  - README.md
 
 default-extensions:
-- OverloadedStrings
+  - OverloadedStrings
 
 dependencies:
   - base >= 4.7 && < 5
@@ -21,11 +22,14 @@ dependencies:
   - monomer
   - text
   - text-show
+  - composition
+  - flow
+  - relude
 
 executables:
-  app:
-    source-dirs:      src
-    main:             Main.hs
+  filenames:
+    source-dirs: src
+    main: Main.hs
     ghc-options:
-    - -fwarn-incomplete-patterns
-    - -threaded
+      - -fwarn-incomplete-patterns
+      - -threaded
