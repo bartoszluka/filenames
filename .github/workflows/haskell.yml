@@ -1,0 +1,39 @@
+name: Haskell CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: mstksg/setup-stack@v1
+    
+    - name: Cache
+      uses: actions/cache@v3
+      env:
+        cache-name: cache-stack
+      with:
+        path: ~/.stack-work
+        key: ${{ runner.os }}-build-${{ env.cache-name }}-${{ hashFiles('**/*.cabal') }}-${{ hashFiles('**/stack.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-build-${{ env.cache-name }}-
+          ${{ runner.os }}-build-
+          ${{ runner.os }}-
+
+    - name: Install dependencies
+      run: |
+        - stack --no-terminal --install-ghc test --only-dependencies
+    - name: Build
+      run: stack build --no-terminal
+    - name: Run tests
+      run: stack test
