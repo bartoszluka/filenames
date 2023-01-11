@@ -126,7 +126,7 @@ jobs:
       #
 
       - name: Install Monomer dependecies
-        run: brew install sdl2 glew pkg-config
+        run: brew install sdl2 glew
         if: env.CONTINUE
 
       - name: Install haskell deps
@@ -183,17 +183,17 @@ jobs:
           path: tmp/filenames-mac-x64.tar
         if: env.CONTINUE
   release:
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     needs: [build]
     steps:
-    - uses: actions/checkout@master
-    - name: Create release
-      uses: Roang-zero1/github-create-release-action@v2
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-    - name: Upload release artifacts
-      uses: Roang-zero1/github-upload-release-artifacts-action@v2
-      with:
-        args: "tmp/filenames-mac-x64.tar filenames"
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@master
+      - name: Create release
+        uses: Roang-zero1/github-create-release-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload release artifacts
+        uses: Roang-zero1/github-upload-release-artifacts-action@v2
+        with:
+          args: "tmp/filenames-mac-x64.tar filenames filenames-mac-x64.tar"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
