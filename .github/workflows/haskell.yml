@@ -43,7 +43,7 @@ jobs:
       #     restore-keys: |
       #       ${{ runner.os }}-stack-programs
       #   if: env.CONTINUE
-      #
+
       - name: Cache .stack-work
         uses: actions/cache@v3
         with:
@@ -53,52 +53,10 @@ jobs:
             ${{ runner.os }}-stack-work
         if: env.CONTINUE
 
-      # - name: Cache filenames-lib/.stack-work
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: filenames-lib/.stack-work
-      #     key: ${{ runner.os }}-filenames-lib-stack-work-${{ hashFiles('filenames-lib/package.yaml') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-filenames-lib-stack-work
-      #   if: env.CONTINUE
-      #
-      - name: Cache filenames/.stack-work
-        uses: actions/cache@v3
-        with:
-          path: filenames/.stack-work
-          key: ${{ runner.os }}-filenames-stack-work-${{ hashFiles('filenames/package.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-filenames-stack-work
-        if: env.CONTINUE
-
-      # - name: Cache filenames-ui/.stack-work
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: filenames-ui/.stack-work
-      #     key: ${{ runner.os }}-filenames-ui-stack-work-${{ hashFiles('filenames-ui/package.yaml') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-filenames-ui-stack-work
-      #   if: env.CONTINUE
-      #
-      # - name: Cache filenames-web/.stack-work
-      #   uses: actions/cache@v3
-      #   with:
-      #     path: filenames-web/.stack-work
-      #     key: ${{ runner.os }}-filenames-web-stack-work-${{ hashFiles('filenames-web/package.yaml') }}
-      #     restore-keys: |
-      #       ${{ runner.os }}-filenames-web-stack-work
-      #   if: env.CONTINUE
-      #
-      # actions:
-
       - name: Install stack
-        # run: |
-        #   brew install haskell-stack
-        #   stack --version
         run: |
           mkdir -p ~/.local/bin
           export PATH=~/.local/bin:$PATH        
-          # brew install gnu-tar; curl -sL https://get.haskellstack.org/stable/osx-x86_64.tar.gz | gtar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'; chmod a+x ~/.local/bin/stack
           if [[ ! -x ~/.local/bin/stack ]]; then brew install gnu-tar; curl -sL https://get.haskellstack.org/stable/osx-x86_64.tar.gz | gtar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'; chmod a+x ~/.local/bin/stack; fi
           stack --version
         if: env.CONTINUE
@@ -109,21 +67,6 @@ jobs:
         run: |
           stack setup --install-ghc
         if: env.CONTINUE
-
-      # - name: Install GHC (with ghcup)
-      #   run: |
-      #     mkdir -p ~/.ghcup/bin && curl -sL https://downloads.haskell.org/~ghcup/x86_64-apple-darwin-ghcup > ~/.ghcup/bin/ghcup && chmod +x ~/.ghcup/bin/ghcup
-      #     ~/.ghcup/bin/ghcup install --set ghc 9.2.4  # && ~/.ghcup/bin/ghcup install stack
-      #     echo "$HOME/.ghcup/bin/" >> $GITHUB_PATH
-      #   if: env.CONTINUE
-
-      # - name: Install GHC (from haskell.org)
-      #   run: |
-      #     curl -sL https://downloads.haskell.org/~ghc/9.2.4/ghc-9.2.4-x86_64-apple-darwin.tar.xz | tar xj && cd ghc-9.2.4-x86_64-apple-darwin && ./configure && make install
-      #     ghc --version
-      #     mkdir -p ~/.stack && printf "system-ghc: true\ninstall-ghc: false\n" >>~/.stack/config.yaml
-      #   if: env.CONTINUE
-      #
 
       - name: Install Monomer dependecies
         run: brew install sdl2 glew
@@ -182,18 +125,18 @@ jobs:
           name: filenames-mac-x64
           path: tmp/filenames-mac-x64.tar
         if: env.CONTINUE
-  release:
-    runs-on: ubuntu-latest
-    needs: [build]
-    steps:
-      - uses: actions/checkout@master
-      - name: Create release
-        uses: Roang-zero1/github-create-release-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - name: Upload release artifacts
-        uses: Roang-zero1/github-upload-release-artifacts-action@v2
-        with:
-          args: "tmp/filenames-mac-x64.tar filenames filenames-mac-x64.tar"
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # release:
+  #   runs-on: ubuntu-latest
+  #   needs: [build]
+  #   steps:
+  #     - uses: actions/checkout@master
+  #     - name: Create release
+  #       uses: Roang-zero1/github-create-release-action@v2
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Upload release artifacts
+  #       uses: Roang-zero1/github-upload-release-artifacts-action@v2
+  #       with:
+  #         args: "tmp/filenames-mac-x64.tar filenames filenames-mac-x64.tar"
+  #       env:
+  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
