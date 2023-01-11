@@ -33,14 +33,12 @@ buildUI wenv model = widgetTree
   where
     widgetTree =
         vstack
-            [ label "Hello world"
+            [ label "miłego dnia :)"
             , spacer
             , hstack
-                [ label $ "Click count: " <> showt (model ^. clickCount)
+                [ label $ "kliknięto razy: " <> showt (model ^. clickCount)
                 , spacer
-                , button "Increase count" AppIncrease
-                , spacer
-                , textField someText
+                , button "+1" AppIncrease
                 ]
             ]
             `styleBasic` [padding 10]
