@@ -130,6 +130,11 @@ jobs:
       #     ghc --version
       #     mkdir -p ~/.stack && printf "system-ghc: true\ninstall-ghc: false\n" >>~/.stack/config.yaml
       #   if: env.CONTINUE
+      #
+
+      - name: Install Monomer dependecies
+        run: brew install sdl2 glew
+        if: env.CONTINUE
 
       - name: Install haskell deps
         env:
