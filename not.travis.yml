@@ -9,8 +9,9 @@
 # named .travis.yml
 
 # Choose a build environment
-dist: xenial
-
+arch: arm64
+os: osx
+osx: image
 # Do not choose a language; we provide our own build tools.
 language: generic
 
