@@ -24,10 +24,7 @@ jobs:
 
     steps:
       - name: Check out
-        uses: actions/checkout@v2
-        # have to fetch everything for git describe for --version
-        with:
-          fetch-depth: 0
+        uses: actions/checkout@v3
 
       - name: Confirm all remaining steps should run
         run: echo "CONTINUE=true" >> $GITHUB_ENV
@@ -36,7 +33,7 @@ jobs:
 
       - name: Cache stack global package db
         id: stack-global
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: ~/.stack
           key: ${{ runner.os }}-stack-global-${{ hashFiles('**.yaml') }}
@@ -46,7 +43,7 @@ jobs:
 
       # - name: Cache stack-installed programs in ~/.local/bin
       #   id: stack-programs
-      #   uses: actions/cache@v2
+      #   uses: actions/cache@v3
       #   with:
       #     path: ~/.local/bin
       #     key: ${{ runner.os }}-stack-programs-${{ hashFiles('**.yaml') }}
@@ -55,7 +52,7 @@ jobs:
       #   if: env.CONTINUE
       #
       - name: Cache .stack-work
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: .stack-work
           key: ${{ runner.os }}-stack-work-${{ hashFiles('**.yaml') }}
@@ -63,40 +60,40 @@ jobs:
             ${{ runner.os }}-stack-work
         if: env.CONTINUE
 
-      - name: Cache hledger-lib/.stack-work
-        uses: actions/cache@v2
-        with:
-          path: hledger-lib/.stack-work
-          key: ${{ runner.os }}-hledger-lib-stack-work-${{ hashFiles('hledger-lib/package.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-hledger-lib-stack-work
-        if: env.CONTINUE
-
-      - name: Cache hledger/.stack-work
-        uses: actions/cache@v2
-        with:
-          path: hledger/.stack-work
-          key: ${{ runner.os }}-hledger-stack-work-${{ hashFiles('hledger/package.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-hledger-stack-work
-        if: env.CONTINUE
-
-      # - name: Cache hledger-ui/.stack-work
-      #   uses: actions/cache@v2
+      # - name: Cache filenames-lib/.stack-work
+      #   uses: actions/cache@v3
       #   with:
-      #     path: hledger-ui/.stack-work
-      #     key: ${{ runner.os }}-hledger-ui-stack-work-${{ hashFiles('hledger-ui/package.yaml') }}
+      #     path: filenames-lib/.stack-work
+      #     key: ${{ runner.os }}-filenames-lib-stack-work-${{ hashFiles('filenames-lib/package.yaml') }}
       #     restore-keys: |
-      #       ${{ runner.os }}-hledger-ui-stack-work
+      #       ${{ runner.os }}-filenames-lib-stack-work
       #   if: env.CONTINUE
       #
-      # - name: Cache hledger-web/.stack-work
-      #   uses: actions/cache@v2
+      - name: Cache filenames/.stack-work
+        uses: actions/cache@v3
+        with:
+          path: filenames/.stack-work
+          key: ${{ runner.os }}-filenames-stack-work-${{ hashFiles('filenames/package.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-filenames-stack-work
+        if: env.CONTINUE
+
+      # - name: Cache filenames-ui/.stack-work
+      #   uses: actions/cache@v3
       #   with:
-      #     path: hledger-web/.stack-work
-      #     key: ${{ runner.os }}-hledger-web-stack-work-${{ hashFiles('hledger-web/package.yaml') }}
+      #     path: filenames-ui/.stack-work
+      #     key: ${{ runner.os }}-filenames-ui-stack-work-${{ hashFiles('filenames-ui/package.yaml') }}
       #     restore-keys: |
-      #       ${{ runner.os }}-hledger-web-stack-work
+      #       ${{ runner.os }}-filenames-ui-stack-work
+      #   if: env.CONTINUE
+      #
+      # - name: Cache filenames-web/.stack-work
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: filenames-web/.stack-work
+      #     key: ${{ runner.os }}-filenames-web-stack-work-${{ hashFiles('filenames-web/package.yaml') }}
+      #     restore-keys: |
+      #       ${{ runner.os }}-filenames-web-stack-work
       #   if: env.CONTINUE
       #
       # actions:
@@ -165,7 +162,7 @@ jobs:
       #     stack: ${{ matrix.plan.stack }}
       #   run: |
       #     export PATH=~/.local/bin:$PATH
-      #     COLUMNS=80 $stack exec -- shelltest --execdir -j16 hledger/test -x /_ -x /addons -x ledger-compat/baseline -x ledger-compat/regress -x ledger-compat/collected # bin
+      #     COLUMNS=80 $stack exec -- shelltest --execdir -j16 filenames/test -x /_ -x /addons -x ledger-compat/baseline -x ledger-compat/regress -x ledger-compat/collected # bin
       #   if: env.CONTINUE
       #
       # artifacts:
