@@ -182,3 +182,18 @@ jobs:
           name: filenames-mac-x64
           path: tmp/filenames-mac-x64.tar
         if: env.CONTINUE
+  release:
+    runs-on: macos-latest
+    needs: [build]
+    steps:
+    - uses: actions/checkout@master
+    - name: Create release
+      uses: Roang-zero1/github-create-release-action@v2
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: Upload release artifacts
+      uses: Roang-zero1/github-upload-release-artifacts-action@v2
+      with:
+        args: "tmp/filenames-mac-x64.tar filenames"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
