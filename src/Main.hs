@@ -7,6 +7,7 @@ module Main (main) where
 import Control.Lens
 import Data.Maybe
 import Data.Text (Text)
+import Data.Text as T
 import Data.Time.Calendar
 import Data.Time.Clock
 import Monomer
@@ -21,11 +22,16 @@ data AppModel = AppModel
     , _clients :: [Text]
     , _selectedClient :: Maybe Text
     , _projectNames :: [Text]
+    , _selectedProjectName :: Maybe Text
     , _stages :: [Text]
+    , _selectedStage :: Maybe Text
     , _formats :: [Text]
+    , _selectedFormat :: Maybe Text
     , _projectNumbers :: [Int]
+    , _selectedProjectNumber :: Maybe Int
     , _versions :: [Int]
-    , _finalFilename :: Maybe Text
+    , _selectedVersion :: Maybe Int
+    , _finalFilename :: Text
     }
     deriving (Eq, Show)
 
@@ -45,14 +51,22 @@ buildUI ::
 buildUI wenv model = widgetTree
   where
     widgetTree =
-        vstack_
-            [childSpacing_ 10]
-            [ label "miłego dnia :)"
-            , button "Wygeneruj nazwę" GenerateFilename
-            , -- , textDropdown (clients ) [_clients model]
-              textDropdown selectedClient (Just <$> _clients model)
-            ]
-            `styleBasic` [padding 10]
+        vscroll $
+            vstack_
+                [childSpacing_ 10]
+                [ label "miłego dnia :)"
+                , button "Wygeneruj nazwę" GenerateFilename
+                , myDropdown selectedClient _clients
+                , myDropdown selectedProjectName _projectNames
+                , myDropdown selectedStage _stages
+                , myDropdown selectedFormat _formats
+                , myDropdown selectedProjectNumber _projectNumbers
+                , myDropdown selectedVersion _versions
+                , textField finalFilename
+                ]
+                `styleBasic` [padding 10]
+    myDropdown lens selector =
+        textDropdown lens (Just <$> selector model)
 
 handleEvent ::
     WidgetEnv AppModel AppEvent ->
@@ -64,7 +78,15 @@ handleEvent wenv node model evt = case evt of
     Init -> []
     GetDate -> [Task $ AssignDate . utctDay <$> getCurrentTime]
     AssignDate day -> [Model $ model & date .~ day]
-    GenerateFilename -> [Model $ model & finalFilename ?~ "hey"]
+    GenerateFilename ->
+        let name :: Text
+            name =
+                T.unwords $
+                    (model &)
+                        <$> [ showt . toGregorian . _date
+                            , showt . _selectedClient
+                            ]
+         in [Model $ model & finalFilename .~ name]
 
 main :: IO ()
 main = do
@@ -84,9 +106,14 @@ main = do
             , _clients = ["McD", "Klient 1", "Klient 2"]
             , _selectedClient = Nothing
             , _projectNames = ["Video Świąteczne", "Projekt 1", "Projekt 2"]
+            , _selectedProjectName = Nothing
             , _stages = ["Etap 1", "Etap 2", "Etap 3"]
+            , _selectedStage = Nothing
             , _formats = ["FC 16x9", "FC 1x1"]
+            , _selectedFormat = Nothing
             , _projectNumbers = [1 .. 4]
+            , _selectedProjectNumber = Nothing
             , _versions = [1 .. 4]
-            , _finalFilename = Nothing
+            , _selectedVersion = Nothing
+            , _finalFilename = ""
             }
