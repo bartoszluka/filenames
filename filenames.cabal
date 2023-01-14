@@ -36,10 +36,9 @@ executable filenames
       base >=4.7 && <5
     , composition
     , data-default
-    , flow
     , lens
     , monomer
-    , relude
     , text
     , text-show
+    , time
   default-language: Haskell2010

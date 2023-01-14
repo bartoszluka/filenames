@@ -23,8 +23,7 @@ dependencies:
   - text
   - text-show
   - composition
-  - flow
-  - relude
+  - time
 
 executables:
   filenames:
