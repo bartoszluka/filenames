@@ -24,6 +24,7 @@ dependencies:
   - text-show
   - composition
   - time
+  - relude
 
 executables:
   filenames:
@@ -32,3 +33,8 @@ executables:
     ghc-options:
       - -fwarn-incomplete-patterns
       - -threaded
+      - -Wall
+      - -Wcompat
+      - -Wincomplete-record-updates
+      - -Wincomplete-uni-patterns
+      - -Wredundant-constraints

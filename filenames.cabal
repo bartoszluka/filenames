@@ -31,13 +31,14 @@ executable filenames
       src
   default-extensions:
       OverloadedStrings
-  ghc-options: -fwarn-incomplete-patterns -threaded
+  ghc-options: -fwarn-incomplete-patterns -threaded -Wall -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
   build-depends:
       base >=4.7 && <5
     , composition
     , data-default
     , lens
     , monomer
+    , relude
     , text
     , text-show
     , time

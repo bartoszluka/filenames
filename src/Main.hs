@@ -1,22 +1,26 @@
 {-# LANGUAGE ImportQualifiedPost #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Main (main) where
 
+import Control.Exception (try)
 import Control.Lens
-import Data.Maybe
-import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Time.Calendar
 import Data.Time.Clock
 import Monomer
-import Monomer.Lens qualified as L
-import Text.Printf (printf)
+import Relude
+import System.IO.Error (IOError)
+import Text.ParserCombinators.ReadPrec qualified as R
+import Text.Read (Read (..))
 import TextShow
+import Prelude qualified
 
-dupa :: a
-dupa = undefined
+readMaybeT :: Read a => Text -> Maybe a
+readMaybeT = readMaybe . T.unpack
 
 newtype Version = Version Int deriving (Eq, Ord)
 
@@ -24,7 +28,14 @@ instance Show Version where
     show (Version v) = "v" <> show v
 
 instance TextShow Version where
-    showb = fromString . show
+    showb = TextShow.fromString . show
+
+instance Read Version where
+    readPrec = do
+        maybeV <- R.get
+        if maybeV == 'v'
+            then Version <$> readPrec
+            else R.pfail
 
 data AppModel = AppModel
     { _date :: Day
@@ -32,8 +43,7 @@ data AppModel = AppModel
     , _selectedClient :: Text
     , _projectNames :: [Text]
     , _selectedProjectName :: Text
-    , -- pomijalny etap
-      _stages :: [Text]
+    , _stages :: [Text]
     , _selectedStage :: Text
     , _formats :: [Text]
     , _selectedFormat :: Text
@@ -50,6 +60,7 @@ data AppEvent
     | GetDate
     | AssignDate Day
     | GenerateFilename
+    | SaveCompleted ()
     deriving (Eq, Show)
 
 makeLenses 'AppModel
@@ -64,24 +75,22 @@ buildUI wenv model = widgetTree
         vscroll $
             vstack_
                 [childSpacing_ 10]
-                [ label "Miłego dnia :)"
-                , label $ T.pack (show $ _date model)
-                , myDropdown "klient:" selectedClient _clients id
-                , myDropdown "projekt:" selectedProjectName _projectNames id
-                , myDropdown "etap:" selectedStage _stages id
-                , myDropdown "format:" selectedFormat _formats id
-                , myDropdown "numer projektu:" selectedProjectNumber _projectNumbers (("p" <>) . (showt :: Int -> Text))
-                , myDropdown "wersja:" selectedVersion _versions showt
+                [ myDropdown "klient:" selectedClient (^. clients) id
+                , myDropdown "projekt:" selectedProjectName (^. projectNames) id
+                , myDropdown "etap:" selectedStage (^. stages) id
+                , myDropdown "format:" selectedFormat (^. formats) id
+                , myDropdown "numer projektu:" selectedProjectNumber (^. projectNumbers) (("p" <>) . (showt :: Int -> Text))
+                , myDropdown "wersja:" selectedVersion (^. versions) showt
                 , button "wygeneruj nazwę" GenerateFilename
                 , textField finalFilename
                 ]
                 `styleBasic` [padding 10]
     -- myDropdown :: Text -> ALens' AppModel (Maybe a) -> (AppModel -> a)
-    myDropdown text lens selector toText =
-        hstack [label text, spacer, dropdown lens (selector model) selected row]
+    myDropdown text field selector customShow =
+        hstack [label text, spacer, dropdown field (selector model) selected row]
       where
-        selected item = label $ toText item
-        row item = label $ toText item
+        selected item = label $ customShow item
+        row item = label $ customShow item
 
 handleEvent ::
     WidgetEnv AppModel AppEvent ->
@@ -93,7 +102,8 @@ handleEvent wenv node model evt = case evt of
     Init -> []
     GetDate -> [Task $ AssignDate . utctDay <$> getCurrentTime]
     AssignDate day -> [Model $ model & date .~ day]
-    GenerateFilename -> [Model $ model & finalFilename .~ name]
+    GenerateFilename -> [Model $ model & finalFilename .~ name, Task $ saveToFile model]
+    SaveCompleted _ -> []
   where
     name :: Text
     name =
@@ -107,16 +117,41 @@ handleEvent wenv node model evt = case evt of
                     , showt . _selectedProjectNumber
                     , showt . _selectedVersion
                     ]
-    formatDate model =
-        let (year, month, day) = toGregorian (_date model)
+    formatDate m =
+        let (year, month, day) = toGregorian (_date m)
          in showt (year `mod` 100)
                 <> (if month < 10 then "0" <> showt month else showt month)
                 <> showt day
 
+saveToFile :: AppModel -> TaskHandler AppEvent
+saveToFile model = do
+    _ <-
+        writeFile ".filenames" . T.unpack . T.unlines $
+            let commaSep = T.intercalate ","
+             in [ "clients:" <> commaSep (model ^. clients)
+                , "selectedClient:" <> model ^. selectedClient
+                , "projectNames:" <> commaSep (model ^. projectNames)
+                , "selectedProjectName:" <> model ^. selectedProjectName
+                , "stages:" <> commaSep (model ^. stages)
+                , "selectedStage:" <> model ^. selectedStage
+                , "formats:" <> commaSep (model ^. formats)
+                , "selectedFormat:" <> model ^. selectedFormat
+                , "projectNumbers:" <> (commaSep . map showt $ model ^. projectNumbers)
+                , "selectedProjectNumber:" <> showt (model ^. selectedProjectNumber)
+                , "versions:" <> (commaSep . map showt $ (model ^. versions))
+                , "selectedVersion:" <> showt (model ^. selectedVersion)
+                ]
+    return (SaveCompleted ())
+
 main :: IO ()
 main = do
     currentDay <- utctDay <$> getCurrentTime
-    startApp (model currentDay) handleEvent buildUI config
+    strOrExc <- try $ readFileBS ".filenames"
+    let appModel = case strOrExc of
+            Left (ex :: IOError) -> defaultModel currentDay
+            Right contents ->
+                parseConfig currentDay (decodeUtf8With lenientDecode contents)
+    startApp appModel handleEvent buildUI config
   where
     config =
         [ appWindowTitle "filenames"
@@ -125,20 +160,74 @@ main = do
         , appFontDef "Regular" "./assets/fonts/Roboto-Regular.ttf"
         , appInitEvent Init
         ]
-    model day =
+
+    defaultModel day =
         AppModel
             { _date = day
-            , _clients = ["McD", "Klient 1", "Klient 2"]
+            , _clients = []
             , _selectedClient = ""
-            , _projectNames = ["Video Świąteczne", "Projekt 1", "Projekt 2"]
+            , _projectNames = []
             , _selectedProjectName = ""
-            , _stages = ["Etap 1", "Etap 2", "Etap 3"]
+            , _stages = []
             , _selectedStage = ""
-            , _formats = ["FC 16x9", "FC 1x1"]
+            , _formats = []
             , _selectedFormat = ""
-            , _projectNumbers = [1 .. 4]
+            , _projectNumbers = []
             , _selectedProjectNumber = 0
-            , _versions = Version <$> [1 .. 4]
+            , _versions = []
             , _selectedVersion = Version 0
             , _finalFilename = ""
             }
+
+parseConfig :: Day -> Text -> AppModel
+parseConfig day content =
+    AppModel
+        { _date = day
+        , _clients = clients_
+        , _selectedClient = selectedClient_
+        , _projectNames = projectNames_
+        , _selectedProjectName = selectedProjectName_
+        , _stages = stages_
+        , _selectedStage = selectedStage_
+        , _formats = formats_
+        , _selectedFormat = selectedFormat_
+        , _projectNumbers = projectNumbers_
+        , _selectedProjectNumber = selectedProjectNumber_
+        , _versions = versions_
+        , _selectedVersion = selectedVersion_
+        , _finalFilename = ""
+        }
+  where
+    clients_ = fromMaybe [] $ searchList "clients"
+    selectedClient_ = fromMaybe "" $ search "selectedClient"
+    projectNames_ = fromMaybe [] $ searchList "projectNames"
+    selectedProjectName_ = fromMaybe "" $ search "selectedProjectName"
+    stages_ = fromMaybe [] $ searchList "stages"
+    selectedStage_ = fromMaybe "" $ search "selectedStage"
+    formats_ = fromMaybe [] $ searchList "formats"
+    selectedFormat_ = fromMaybe "" $ search "selectedFormat"
+    projectNumbers_ = fromMaybe [] $ searchList "projectNumbers" >>= traverse readMaybeT
+    selectedProjectNumber_ = fromMaybe 0 $ search "selectedProjectNumber" >>= readMaybeT
+    versions_ = fromMaybe [] $ searchList "versions" >>= traverse readMaybeT
+    selectedVersion_ = fromMaybe (Version 0) $ search "selectedVersion" >>= readMaybeT
+    pseudoDict :: [Maybe (Text, Text)]
+    pseudoDict = splitKeys <$> T.lines content
+    splitKeys input = case T.splitOn ":" input of
+        [key, values] -> Just (key, values)
+        _ -> Nothing
+    searchList :: Text -> Maybe [Text]
+    searchList k = T.splitOn "," <$> search k
+    search k = do
+        mb <-
+            single
+                . filter
+                    ( \case
+                        Nothing -> False
+                        Just (key, _) -> key == k
+                    )
+                $ pseudoDict
+        (_, v) <- mb
+        return v
+    single = \case
+        [x] -> Just x
+        _ -> Nothing
