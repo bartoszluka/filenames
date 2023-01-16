@@ -100,28 +100,29 @@ buildUI wenv model = widgetTree
             vstack_
                 [childSpacing_ 10]
                 -- `id` because maybe in the future there will be different type than `Text`
-                [ myDropdown "klient:" newClient selectedClient clients id
-                , myDropdown "projekt:" newProjectName selectedProjectName projectNames id
-                , myDropdown "etap:" newStage selectedStage stages id
-                , myDropdown "format:" newFormat selectedFormat formats id
-                , myDropdown "numer projektu:" newProjectNumber selectedProjectNumber projectNumbers id
-                , myDropdown "wersja:" newVersion selectedVersion versions id
+                [ myWidget "klient:" newClient selectedClient clients includeClient
+                , myWidget "projekt:" newProjectName selectedProjectName projectNames includeProjectName
+                , myWidget "etap:" newStage selectedStage stages includeStage
+                , myWidget "format:" newFormat selectedFormat formats includeFormat
+                , myWidget "numer projektu:" newProjectNumber selectedProjectNumber projectNumbers includeProjectNumber
+                , myWidget "wersja:" newVersion selectedVersion versions includeVersion
                 , button "wygeneruj nazwę" GenerateFilename
                 , textField finalFilename
                 ]
                 `styleBasic` [padding 10]
-    myDropdown :: Text -> MyLensInto Text -> MyLensInto Text -> MyLensInto [Text] -> (Text -> Text) -> MyWidgetNode
-    myDropdown text newFieldLens selectedFieldLens listLens customShow =
+    myWidget :: Text -> MyLensInto Text -> MyLensInto Text -> MyLensInto [Text] -> MyLensInto Bool -> MyWidgetNode
+    myWidget text newFieldLens selectedFieldLens listLens includeFieldLens =
         hstack_
             [childSpacing_ 10]
             [ label text
             , textField newFieldLens
             , button "dodaj" $ AddNew newFieldLens selectedFieldLens listLens
             , dropdown selectedFieldLens (model ^. listLens) selected row
+            , checkbox includeFieldLens
             ]
       where
-        selected item = label $ customShow item
-        row item = label $ customShow item
+        selected = label
+        row = label
 
 handleEvent ::
     WidgetEnv AppModel AppEvent ->
@@ -147,18 +148,18 @@ handleEvent wenv node model evt = case evt of
     model_ `with` updates = model_ & foldl' (.) id updates
     name :: Text
     name =
-        T.unwords $
-            (model &)
-                <$> [ formatDate
-                    , _selectedClient
-                    , _selectedProjectName
-                    , _selectedStage
-                    , _selectedFormat
-                    , _selectedProjectNumber
-                    , _selectedVersion
-                    ]
-    formatDate m =
-        let (year, month, day) = toGregorian (_date m)
+        T.unwords . map fst . filter snd $
+            [ (formatedDate, True)
+            , (model ^. selectedClient, model ^. includeClient)
+            , (model ^. selectedProjectName, model ^. includeProjectName)
+            , (model ^. selectedStage, model ^. includeStage)
+            , (model ^. selectedFormat, model ^. includeFormat)
+            , (model ^. selectedProjectNumber, model ^. includeProjectNumber)
+            , (model ^. selectedVersion, model ^. includeVersion)
+            ]
+
+    formatedDate =
+        let (year, month, day) = toGregorian (model ^. date)
          in showt (year `mod` 100)
                 <> ((if month < 10 then "0" else "") <> showt month)
                 <> showt day
