@@ -41,16 +41,22 @@ data AppModel = AppModel
     { _date :: Day
     , _clients :: [Text]
     , _selectedClient :: Text
+    , _newClient :: Text
     , _projectNames :: [Text]
     , _selectedProjectName :: Text
+    , _newProjectName :: Text
     , _stages :: [Text]
     , _selectedStage :: Text
+    , _newStage :: Text
     , _formats :: [Text]
     , _selectedFormat :: Text
-    , _projectNumbers :: [Int]
-    , _selectedProjectNumber :: Int
-    , _versions :: [Version]
-    , _selectedVersion :: Version
+    , _newFormat :: Text
+    , _projectNumbers :: [Text]
+    , _selectedProjectNumber :: Text
+    , _newProjectNumber :: Text
+    , _versions :: [Text]
+    , _selectedVersion :: Text
+    , _newVersion :: Text
     , _finalFilename :: Text
     }
     deriving (Eq, Show)
@@ -61,6 +67,7 @@ data AppEvent
     | AssignDate Day
     | GenerateFilename
     | SaveCompleted ()
+    | AddNew
     deriving (Eq, Show)
 
 makeLenses 'AppModel
@@ -75,19 +82,26 @@ buildUI wenv model = widgetTree
         vscroll $
             vstack_
                 [childSpacing_ 10]
-                [ myDropdown "klient:" selectedClient (^. clients) id
-                , myDropdown "projekt:" selectedProjectName (^. projectNames) id
-                , myDropdown "etap:" selectedStage (^. stages) id
-                , myDropdown "format:" selectedFormat (^. formats) id
-                , myDropdown "numer projektu:" selectedProjectNumber (^. projectNumbers) (("p" <>) . (showt :: Int -> Text))
-                , myDropdown "wersja:" selectedVersion (^. versions) showt
+                -- `id` because maybe in the future there will be different type than `Text`
+                [ myDropdown "klient:" newClient selectedClient (^. clients) id
+                , myDropdown "projekt:" newProjectName selectedProjectName (^. projectNames) id
+                , myDropdown "etap:" newStage selectedStage (^. stages) id
+                , myDropdown "format:" newFormat selectedFormat (^. formats) id
+                , myDropdown "numer projektu:" newProjectNumber selectedProjectNumber (^. projectNumbers) id
+                , myDropdown "wersja:" newVersion selectedVersion (^. versions) id
                 , button "wygeneruj nazwę" GenerateFilename
                 , textField finalFilename
                 ]
                 `styleBasic` [padding 10]
     -- myDropdown :: Text -> ALens' AppModel (Maybe a) -> (AppModel -> a)
-    myDropdown text field selector customShow =
-        hstack [label text, spacer, dropdown field (selector model) selected row]
+    myDropdown text newFieldLens selectedFieldLens selector customShow =
+        hstack_
+            [childSpacing_ 10]
+            [ label text
+            , textField newFieldLens
+            , button "dodaj" AddNew
+            , dropdown selectedFieldLens (selector model) selected row
+            ]
       where
         selected item = label $ customShow item
         row item = label $ customShow item
@@ -104,6 +118,7 @@ handleEvent wenv node model evt = case evt of
     AssignDate day -> [Model $ model & date .~ day]
     GenerateFilename -> [Model $ model & finalFilename .~ name, Task $ saveToFile model]
     SaveCompleted _ -> []
+    AddNew -> [Model $ model & newClient .~ "dupa"]
   where
     name :: Text
     name =
@@ -166,16 +181,22 @@ main = do
             { _date = day
             , _clients = []
             , _selectedClient = ""
+            , _newClient = ""
             , _projectNames = []
             , _selectedProjectName = ""
+            , _newProjectName = ""
             , _stages = []
             , _selectedStage = ""
+            , _newStage = ""
             , _formats = []
             , _selectedFormat = ""
+            , _newFormat = ""
             , _projectNumbers = []
-            , _selectedProjectNumber = 0
+            , _selectedProjectNumber = ""
+            , _newProjectNumber = ""
             , _versions = []
-            , _selectedVersion = Version 0
+            , _selectedVersion = ""
+            , _newVersion = ""
             , _finalFilename = ""
             }
 
@@ -185,16 +206,22 @@ parseConfig day content =
         { _date = day
         , _clients = clients_
         , _selectedClient = selectedClient_
+        , _newClient = ""
         , _projectNames = projectNames_
         , _selectedProjectName = selectedProjectName_
+        , _newProjectName = ""
         , _stages = stages_
         , _selectedStage = selectedStage_
+        , _newStage = ""
         , _formats = formats_
         , _selectedFormat = selectedFormat_
+        , _newFormat = ""
         , _projectNumbers = projectNumbers_
         , _selectedProjectNumber = selectedProjectNumber_
+        , _newProjectNumber = ""
         , _versions = versions_
         , _selectedVersion = selectedVersion_
+        , _newVersion = ""
         , _finalFilename = ""
         }
   where
@@ -206,10 +233,10 @@ parseConfig day content =
     selectedStage_ = fromMaybe "" $ search "selectedStage"
     formats_ = fromMaybe [] $ searchList "formats"
     selectedFormat_ = fromMaybe "" $ search "selectedFormat"
-    projectNumbers_ = fromMaybe [] $ searchList "projectNumbers" >>= traverse readMaybeT
-    selectedProjectNumber_ = fromMaybe 0 $ search "selectedProjectNumber" >>= readMaybeT
+    projectNumbers_ = fromMaybe [] $ searchList "projectNumbers"
+    selectedProjectNumber_ = fromMaybe "" $ search "selectedProjectNumber"
     versions_ = fromMaybe [] $ searchList "versions" >>= traverse readMaybeT
-    selectedVersion_ = fromMaybe (Version 0) $ search "selectedVersion" >>= readMaybeT
+    selectedVersion_ = fromMaybe "" $ search "selectedVersion"
     pseudoDict :: [Maybe (Text, Text)]
     pseudoDict = splitKeys <$> T.lines content
     splitKeys input = case T.splitOn ":" input of
