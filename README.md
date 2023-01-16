@@ -11,8 +11,9 @@ For more information, check https://github.com/fjvallarino/monomer.
 
 TODO:
 
-- [ ] dodawanie nowych pól
+- [x] dodawanie nowych pól
+- [x] zapisywanie i zapamiętywanie wpisanych rzeczy
+- [ ] filtrowanie już wpisanych
 - [ ] checkbox czy uwzględnić pole czy nie
 - [ ] możliwość użycia Maybe w typie danych (albo jakiegoś innego customowego)
-- [x] zapisywanie i zapamiętywanie wpisanych rzeczy
 - [ ] custom widget

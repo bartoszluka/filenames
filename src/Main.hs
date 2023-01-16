@@ -1,6 +1,7 @@
 {-# LANGUAGE ImportQualifiedPost #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -61,6 +62,8 @@ data AppModel = AppModel
     }
     deriving (Eq, Show)
 
+type MyLensInto a = Lens' AppModel a
+
 data AppEvent
     = Init
     | GetDate
@@ -68,7 +71,12 @@ data AppEvent
     | GenerateFilename
     | SaveCompleted ()
     | AddNew
-    deriving (Eq, Show)
+        (MyLensInto Text)
+        -- ^ stores new value
+        (MyLensInto Text)
+        -- ^ selected field in the list
+        (MyLensInto [Text])
+        -- ^ list to add the new field to
 
 makeLenses 'AppModel
 
@@ -76,6 +84,9 @@ buildUI ::
     WidgetEnv AppModel AppEvent ->
     AppModel ->
     WidgetNode AppModel AppEvent
+
+type MyWidgetNode = WidgetNode AppModel AppEvent
+
 buildUI wenv model = widgetTree
   where
     widgetTree =
@@ -83,24 +94,24 @@ buildUI wenv model = widgetTree
             vstack_
                 [childSpacing_ 10]
                 -- `id` because maybe in the future there will be different type than `Text`
-                [ myDropdown "klient:" newClient selectedClient (^. clients) id
-                , myDropdown "projekt:" newProjectName selectedProjectName (^. projectNames) id
-                , myDropdown "etap:" newStage selectedStage (^. stages) id
-                , myDropdown "format:" newFormat selectedFormat (^. formats) id
-                , myDropdown "numer projektu:" newProjectNumber selectedProjectNumber (^. projectNumbers) id
-                , myDropdown "wersja:" newVersion selectedVersion (^. versions) id
+                [ myDropdown "klient:" newClient selectedClient clients id
+                , myDropdown "projekt:" newProjectName selectedProjectName projectNames id
+                , myDropdown "etap:" newStage selectedStage stages id
+                , myDropdown "format:" newFormat selectedFormat formats id
+                , myDropdown "numer projektu:" newProjectNumber selectedProjectNumber projectNumbers id
+                , myDropdown "wersja:" newVersion selectedVersion versions id
                 , button "wygeneruj nazwę" GenerateFilename
                 , textField finalFilename
                 ]
                 `styleBasic` [padding 10]
-    -- myDropdown :: Text -> ALens' AppModel (Maybe a) -> (AppModel -> a)
-    myDropdown text newFieldLens selectedFieldLens selector customShow =
+    myDropdown :: Text -> MyLensInto Text -> MyLensInto Text -> MyLensInto [Text] -> (Text -> Text) -> MyWidgetNode
+    myDropdown text newFieldLens selectedFieldLens listLens customShow =
         hstack_
             [childSpacing_ 10]
             [ label text
             , textField newFieldLens
-            , button "dodaj" AddNew
-            , dropdown selectedFieldLens (selector model) selected row
+            , button "dodaj" $ AddNew newFieldLens selectedFieldLens listLens
+            , dropdown selectedFieldLens (model ^. listLens) selected row
             ]
       where
         selected item = label $ customShow item
@@ -118,8 +129,16 @@ handleEvent wenv node model evt = case evt of
     AssignDate day -> [Model $ model & date .~ day]
     GenerateFilename -> [Model $ model & finalFilename .~ name, Task $ saveToFile model]
     SaveCompleted _ -> []
-    AddNew -> [Model $ model & newClient .~ "dupa"]
+    AddNew newFieldLens selectedFieldLens listLens ->
+        let value = model ^. newFieldLens
+         in [ Model $
+                model
+                    `with` [ listLens %~ (value :)
+                           , selectedFieldLens .~ value
+                           ]
+            ]
   where
+    model_ `with` updates = model_ & foldl' (.) id updates
     name :: Text
     name =
         T.unwords $
@@ -129,13 +148,13 @@ handleEvent wenv node model evt = case evt of
                     , _selectedProjectName
                     , _selectedStage
                     , _selectedFormat
-                    , showt . _selectedProjectNumber
-                    , showt . _selectedVersion
+                    , _selectedProjectNumber
+                    , _selectedVersion
                     ]
     formatDate m =
         let (year, month, day) = toGregorian (_date m)
          in showt (year `mod` 100)
-                <> (if month < 10 then "0" <> showt month else showt month)
+                <> ((if month < 10 then "0" else "") <> showt month)
                 <> showt day
 
 saveToFile :: AppModel -> TaskHandler AppEvent
