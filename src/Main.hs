@@ -43,21 +43,27 @@ data AppModel = AppModel
     , _clients :: [Text]
     , _selectedClient :: Text
     , _newClient :: Text
+    , _includeClient :: Bool
     , _projectNames :: [Text]
     , _selectedProjectName :: Text
     , _newProjectName :: Text
+    , _includeProjectName :: Bool
     , _stages :: [Text]
     , _selectedStage :: Text
     , _newStage :: Text
+    , _includeStage :: Bool
     , _formats :: [Text]
     , _selectedFormat :: Text
     , _newFormat :: Text
+    , _includeFormat :: Bool
     , _projectNumbers :: [Text]
     , _selectedProjectNumber :: Text
     , _newProjectNumber :: Text
+    , _includeProjectNumber :: Bool
     , _versions :: [Text]
     , _selectedVersion :: Text
     , _newVersion :: Text
+    , _includeVersion :: Bool
     , _finalFilename :: Text
     }
     deriving (Eq, Show)
@@ -164,16 +170,22 @@ saveToFile model = do
             let commaSep = T.intercalate ","
              in [ "clients:" <> commaSep (model ^. clients)
                 , "selectedClient:" <> model ^. selectedClient
+                , "includeClient:" <> showt (model ^. includeClient)
                 , "projectNames:" <> commaSep (model ^. projectNames)
                 , "selectedProjectName:" <> model ^. selectedProjectName
+                , "includeProjectName:" <> showt (model ^. includeProjectName)
                 , "stages:" <> commaSep (model ^. stages)
                 , "selectedStage:" <> model ^. selectedStage
+                , "includeStage:" <> showt (model ^. includeStage)
                 , "formats:" <> commaSep (model ^. formats)
                 , "selectedFormat:" <> model ^. selectedFormat
-                , "projectNumbers:" <> (commaSep . map showt $ model ^. projectNumbers)
+                , "includeFormat:" <> showt (model ^. includeFormat)
+                , "projectNumbers:" <> commaSep (model ^. projectNumbers)
                 , "selectedProjectNumber:" <> showt (model ^. selectedProjectNumber)
-                , "versions:" <> (commaSep . map showt $ (model ^. versions))
+                , "includeProjectNumber:" <> showt (model ^. includeProjectNumber)
+                , "versions:" <> commaSep (model ^. versions)
                 , "selectedVersion:" <> showt (model ^. selectedVersion)
+                , "includeVersion:" <> showt (model ^. includeVersion)
                 ]
     return (SaveCompleted ())
 
@@ -201,21 +213,27 @@ main = do
             , _clients = []
             , _selectedClient = ""
             , _newClient = ""
+            , _includeClient = True
             , _projectNames = []
             , _selectedProjectName = ""
             , _newProjectName = ""
+            , _includeProjectName = True
             , _stages = []
             , _selectedStage = ""
             , _newStage = ""
+            , _includeStage = True
             , _formats = []
             , _selectedFormat = ""
             , _newFormat = ""
+            , _includeFormat = True
             , _projectNumbers = []
             , _selectedProjectNumber = ""
             , _newProjectNumber = ""
+            , _includeProjectNumber = True
             , _versions = []
             , _selectedVersion = ""
             , _newVersion = ""
+            , _includeVersion = True
             , _finalFilename = ""
             }
 
@@ -226,36 +244,48 @@ parseConfig day content =
         , _clients = clients_
         , _selectedClient = selectedClient_
         , _newClient = ""
+        , _includeClient = includeClient_
         , _projectNames = projectNames_
         , _selectedProjectName = selectedProjectName_
         , _newProjectName = ""
+        , _includeProjectName = includeProjectName_
         , _stages = stages_
         , _selectedStage = selectedStage_
         , _newStage = ""
+        , _includeStage = includeStage_
         , _formats = formats_
         , _selectedFormat = selectedFormat_
         , _newFormat = ""
+        , _includeFormat = includeFormat_
         , _projectNumbers = projectNumbers_
         , _selectedProjectNumber = selectedProjectNumber_
         , _newProjectNumber = ""
+        , _includeProjectNumber = includeProjectNumber_
         , _versions = versions_
         , _selectedVersion = selectedVersion_
         , _newVersion = ""
+        , _includeVersion = includeVersion_
         , _finalFilename = ""
         }
   where
     clients_ = fromMaybe [] $ searchList "clients"
     selectedClient_ = fromMaybe "" $ search "selectedClient"
+    includeClient_ = fromMaybe True $ search "includeClient" >>= readMaybeT
     projectNames_ = fromMaybe [] $ searchList "projectNames"
     selectedProjectName_ = fromMaybe "" $ search "selectedProjectName"
+    includeProjectName_ = fromMaybe True $ search "includeProjectName" >>= readMaybeT
     stages_ = fromMaybe [] $ searchList "stages"
     selectedStage_ = fromMaybe "" $ search "selectedStage"
+    includeStage_ = fromMaybe True $ search "includeStage" >>= readMaybeT
     formats_ = fromMaybe [] $ searchList "formats"
     selectedFormat_ = fromMaybe "" $ search "selectedFormat"
+    includeFormat_ = fromMaybe True $ search "includeFormat" >>= readMaybeT
     projectNumbers_ = fromMaybe [] $ searchList "projectNumbers"
     selectedProjectNumber_ = fromMaybe "" $ search "selectedProjectNumber"
-    versions_ = fromMaybe [] $ searchList "versions" >>= traverse readMaybeT
+    includeProjectNumber_ = fromMaybe True $ search "includeProjectNumber" >>= readMaybeT
+    versions_ = fromMaybe [] $ searchList "versions"
     selectedVersion_ = fromMaybe "" $ search "selectedVersion"
+    includeVersion_ = fromMaybe True $ search "includeVersion" >>= readMaybeT
     pseudoDict :: [Maybe (Text, Text)]
     pseudoDict = splitKeys <$> T.lines content
     splitKeys input = case T.splitOn ":" input of
