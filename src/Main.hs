@@ -182,10 +182,10 @@ saveToFile model = do
                 , "selectedFormat:" <> model ^. selectedFormat
                 , "includeFormat:" <> showt (model ^. includeFormat)
                 , "projectNumbers:" <> commaSep (model ^. projectNumbers)
-                , "selectedProjectNumber:" <> showt (model ^. selectedProjectNumber)
+                , "selectedProjectNumber:" <> model ^. selectedProjectNumber
                 , "includeProjectNumber:" <> showt (model ^. includeProjectNumber)
                 , "versions:" <> commaSep (model ^. versions)
-                , "selectedVersion:" <> showt (model ^. selectedVersion)
+                , "selectedVersion:" <> model ^. selectedVersion
                 , "includeVersion:" <> showt (model ^. includeVersion)
                 ]
     return (SaveCompleted ())

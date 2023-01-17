@@ -13,7 +13,9 @@ TODO:
 
 - [x] dodawanie nowych pól
 - [x] zapisywanie i zapamiętywanie wpisanych rzeczy
+- [x] checkbox czy uwzględnić pole czy nie
 - [ ] filtrowanie już wpisanych
-- [ ] checkbox czy uwzględnić pole czy nie
+- [ ] dystrybucja przez homebrew
+- [ ] historia generowanych nazw (ostatnie 10)
 - [ ] możliwość użycia Maybe w typie danych (albo jakiegoś innego customowego)
 - [ ] custom widget
