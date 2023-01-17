@@ -93,10 +93,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
+          tag: ${{ github.ref }}
           draft: false
           prerelease: true
-          asset_path: tmp/filenames-mac-x64.tar.gz
+          artifacts: tmp/filenames-mac-x64.tar.gz
 
       # - name: Upload Release Asset
       #   uses: actions/upload-release-asset@v1
