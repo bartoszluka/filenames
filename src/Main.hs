@@ -76,6 +76,7 @@ data AppEvent
     | AssignDate Day
     | GenerateFilename
     | SaveCompleted ()
+    | Quit
     | AddNew
         (MyLensInto Text)
         -- ^ stores new value
@@ -136,6 +137,7 @@ handleEvent wenv node model evt = case evt of
     AssignDate day -> [Model $ model & date .~ day]
     GenerateFilename -> [Model $ model & finalFilename .~ name, Task $ saveToFile model]
     SaveCompleted _ -> []
+    Quit -> [exitApplication]
     AddNew newFieldLens selectedFieldLens listLens ->
         let value = model ^. newFieldLens
          in [ Model $
@@ -198,14 +200,16 @@ main = do
             Left (ex :: IOError) -> defaultModel currentDay
             Right contents ->
                 parseConfig currentDay (decodeUtf8With lenientDecode contents)
-    startApp appModel handleEvent buildUI config
+    args <- getArgs
+    let startEvent = if "--quit" `elem` args then Quit else Init
+    startApp appModel handleEvent buildUI (config startEvent)
   where
-    config =
+    config event =
         [ appWindowTitle "filenames"
         , appWindowIcon "./assets/images/icon.png"
         , appTheme darkTheme
         , appFontDef "Regular" "./assets/fonts/Roboto-Regular.ttf"
-        , appInitEvent Init
+        , appInitEvent event
         ]
 
     defaultModel day =

@@ -69,6 +69,7 @@ jobs:
     - name: Build the project and test unit tests, doc tests
       run: |
         stack install --test --force-dirty --ghc-options=-fforce-recomp
+        stack exec filenames -- --quit
         # stack install --test --force-dirty --ghc-options=-fforce-recomp --pedantic
 
     - name: Get version
@@ -83,7 +84,7 @@ jobs:
         cd tmp
         cp ~/.local/bin/filenames .
         strip filenames
-        tar cvzf filenames-mac-x64.tar.gz ~/.local/bin/filenames
+        tar cvzf filenames-mac-x64.tar.gz filenames
         echo sha="$(shasum -a 256 filenames-mac-x64.tar.gz | awk '{printf $1}')" >> $GITHUB_OUTPUT
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
