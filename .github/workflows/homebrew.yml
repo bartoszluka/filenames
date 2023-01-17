@@ -1,0 +1,119 @@
+name: Release
+
+on:
+  push:
+   tags:
+     - '*'
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      # matrix:
+      #   os: [ubuntu-latest, macos-latest, windows-latest, ubuntu-22.04]
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Cache stack global package db
+      id: stack-global
+      uses: actions/cache@v3
+      with:
+        path: ~/.stack
+        key: ${{ runner.os }}-stack-global-${{ hashFiles('**.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-stack-global
+
+    # - name: Cache stack-installed programs in ~/.local/bin
+    #   id: stack-programs
+    #   uses: actions/cache@v3
+    #   with:
+    #     path: ~/.local/bin
+    #     key: ${{ runner.os }}-stack-programs-${{ hashFiles('**.yaml') }}
+    #     restore-keys: |
+    #       ${{ runner.os }}-stack-programs
+
+    - name: Cache .stack-work
+      id: local-stack-work
+      uses: actions/cache@v3
+      with:
+        path: .stack-work
+        key: ${{ runner.os }}-stack-work-${{ hashFiles('**.yaml') }}
+        restore-keys: |
+          ${{ runner.os }}-stack-work
+
+
+    - name: Install stack
+      id: install-stack
+      run: |
+        set -ex
+        mkdir -p ~/.local/bin
+        export PATH="~/.local/bin:$PATH"
+        if [[ ! -x ~/.local/bin/stack ]]; then brew install gnu-tar; curl -sL https://get.haskellstack.org/stable/osx-x86_64.tar.gz | gtar xz --wildcards --strip-components=1 -C ~/.local/bin '*/stack'; chmod a+x ~/.local/bin/stack; fi
+        stack --version
+
+    - name: Install GHC (with stack)
+      id: install-ghc
+      run: |
+        stack setup --install-ghc
+
+    - name: Install Monomer dependecies
+      run: brew install sdl2 glew
+
+    - name: Install haskell deps
+      run: |
+        stack build --test --only-dependencies --dry-run
+        stack build --test --only-dependencies
+
+    - name: Build the project and test unit tests, doc tests
+      run: |
+        stack install --test --force-dirty --ghc-options=-fforce-recomp
+        # stack install --test --force-dirty --ghc-options=-fforce-recomp --pedantic
+
+    - name: Get version
+      id: get_version
+      run: echo ::set-output name=version::${GITHUB_REF/refs\/tags\//}
+
+
+    - name: Set SHA
+      id: shasum
+      run: |
+        mkdir -p tmp
+        cd tmp
+        cp ~/.local/bin/filenames .
+        strip filenames
+        tar cvzf filenames-mac-x64.tar.gz ~/.local/bin/filenames
+        echo ::set-output name=sha::"$(shasum -a 256 filenames-mac-x64.tar.gz | awk '{printf $1}')"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref }}
+        release_name: ${{ github.ref }}
+        draft: false
+        prerelease: true
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: ./tmp/filenames-mac-x64.tar.gz
+        asset_name: filenames-mac-x64.tar.gz
+        asset_content_type: application/gzip
+
+    - name: Bump personal tap formula
+      uses: mislav/bump-homebrew-formula-action@v1
+      env:
+        COMMITTER_TOKEN: ${{ secrets.BREW_TOKEN }}
+      with:
+        formula-name: filenames
+        homebrew-tap: bartoszluka/filenames
+        download-url: https://github.com/bartoszluka/filenames/releases/download/${{ steps.get_version.outputs.version }}/filenames-mac-x64.tar.gz

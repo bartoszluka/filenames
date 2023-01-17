@@ -121,7 +121,6 @@ jobs:
       - name: Upload binaries artifact
         uses: actions/upload-artifact@v3
         with:
-          draft: false
           name: filenames-mac-x64
           path: tmp/filenames-mac-x64.tar
         if: env.CONTINUE
