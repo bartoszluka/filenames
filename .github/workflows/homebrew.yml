@@ -73,7 +73,7 @@ jobs:
 
     - name: Get version
       id: get_version
-      run: echo ::set-output name=version::${GITHUB_REF/refs\/tags\//}
+      run: echo "version=${GITHUB_REF/refs\/tags\//}" >> $GITHUB_OUTPUT
 
 
     - name: Set SHA
@@ -84,7 +84,7 @@ jobs:
         cp ~/.local/bin/filenames .
         strip filenames
         tar cvzf filenames-mac-x64.tar.gz ~/.local/bin/filenames
-        echo ::set-output name=sha::"$(shasum -a 256 filenames-mac-x64.tar.gz | awk '{printf $1}')"
+        echo sha="$(shasum -a 256 filenames-mac-x64.tar.gz | awk '{printf $1}')" >> $GITHUB_OUTPUT
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
