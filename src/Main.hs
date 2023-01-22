@@ -12,6 +12,7 @@ import Control.Lens
 import Data.Text qualified as T
 import Data.Time.Calendar
 import Data.Time.Clock
+import FilteredDropdown (filteredDropdown)
 import Monomer
 import Relude
 import System.IO.Error (IOError)
@@ -118,10 +119,16 @@ buildUI wenv model = widgetTree
             [ label text
             , textField newFieldLens
             , button "dodaj" $ AddNew newFieldLens selectedFieldLens listLens
-            , dropdown selectedFieldLens (model ^. listLens) selected row
-            , checkbox includeFieldLens
+            , dropdown selectedFieldLens list selected row
+            , labeledCheckbox_ "ma być w nazwie?" includeFieldLens [checkboxSquare]
+            , filteredDropdown () ()
             ]
       where
+        list :: [Text]
+        list = filter (caseInsensitiveMatch (model ^. newFieldLens)) $ model ^. listLens
+        caseInsensitiveMatch :: Text -> Text -> Bool
+        -- caseInsensitiveMatch text1 text2 = T.toLower text1 `T.isInfixOf` T.toLower text2
+        caseInsensitiveMatch = T.isInfixOf `on` T.toLower
         selected = label
         row = label
 
@@ -144,6 +151,7 @@ handleEvent wenv node model evt = case evt of
                 model
                     `with` [ listLens %~ (value :)
                            , selectedFieldLens .~ value
+                           , newFieldLens .~ ""
                            ]
             ]
   where

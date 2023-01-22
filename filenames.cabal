@@ -26,6 +26,7 @@ source-repository head
 executable filenames
   main-is: Main.hs
   other-modules:
+      FilteredDropdown
       Paths_filenames
   hs-source-dirs:
       src
